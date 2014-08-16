@@ -2,10 +2,10 @@
   "name": "funnel-server",
   "description": "",
   "version": "0.0.0",
-  "homepage": "https://github.com/dominictarr/funnel-server",
+  "homepage": "https://github.com/micnews/megafunnel",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dominictarr/funnel-server.git"
+    "url": "git://github.com/micnews/megafunnel.git"
   },
   "dependencies": {
     "csv-line": "dominictarr/csv-line",
@@ -19,6 +19,6 @@
   "scripts": {
     "test": "set -e; for t in test/*.js; do node $t; done"
   },
-  "author": "Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)",
+  "author": "Dominic Tarr <dominictarr@micnews.com> (https://mic.com)",
   "license": "MIT"
 }
