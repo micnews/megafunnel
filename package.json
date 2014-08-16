@@ -1,0 +1,24 @@
+{
+  "name": "funnel-server",
+  "description": "",
+  "version": "0.0.0",
+  "homepage": "https://github.com/dominictarr/funnel-server",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/funnel-server.git"
+  },
+  "dependencies": {
+    "csv-line": "dominictarr/csv-line",
+    "reconnect-net": "~0.0.0",
+    "log-rotation-stream": "~0.0.0",
+    "reconnect": "~2.0.1",
+    "log-range-query": "~0.0.0",
+    "qs": "~1.2.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "set -e; for t in test/*.js; do node $t; done"
+  },
+  "author": "Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)",
+  "license": "MIT"
+}
