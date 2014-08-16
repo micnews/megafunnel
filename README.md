@@ -1,7 +1,6 @@
-# funnel-server
+# MEGAFUNNEL
 
-take many streaming inputs (over streams: http, websockets, tcp)
-and combine them into one stream.
+Stream massive amounts of time series data (analytics) into timeseries database (rotating log files)
 
 ## License
 
