@@ -40,7 +40,6 @@ module.exports = function (config) {
   }).listen(config.megaNetPort)
 
   http.createServer(function (req, res) {
-    console.log(req.url)
     var q = url.parse(req.url)
     var opts = qs.parse(q.query)
     var pathname = q.pathname

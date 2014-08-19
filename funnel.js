@@ -34,24 +34,17 @@ module.exports = function (config) {
       protocol: 'http'
     })
 
-  console.log(megaUrl)
-
   reconnect(function (stream) {
     console.error('connected to megafunnel')
     stream.setNoDelay(true)
-    f.createOutput().on('data', function (d) {
-      console.log('>>', d.toString())
-    }).pipe(stream)
+    f.createOutput().pipe(stream)
   })
     .connect(config.megaNetPort, config.megaHost)
     .on('disconnect', function () {
-      console.error('disconnected from megafunnel')
+      console.error('disconnected')
     })
     .on('connection', function () {
       console.log('connected')
-    })
-    .on('reconnect', function () {
-      console.error('reconnect')
     })
 
   return http.createServer(function (req, res) {
@@ -61,9 +54,6 @@ module.exports = function (config) {
     }
     else if(req.url == '/track')
       req
-        .on('data', function (data) {
-          console.log(data.toString())
-        })
         .pipe(f.createInput())
     else {
       req.resume()
@@ -75,7 +65,11 @@ module.exports = function (config) {
       )
     }
   })
-    .listen(config.funnelPort)
+    .listen(config.funnelPort, function () {
+      console.error('megafunnel/funnel listening on:'
+        + config.funnelPort
+      )
+    })
 
 }
 
