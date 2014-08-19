@@ -8,12 +8,17 @@
     "url": "git://github.com/micnews/megafunnel.git"
   },
   "dependencies": {
-    "csv-line": "dominictarr/csv-line",
+    "csv-line": "~1.2.0",
     "reconnect-net": "~0.0.0",
     "log-rotation-stream": "~0.0.0",
-    "reconnect": "~2.0.1",
-    "log-range-query": "~0.0.0",
-    "qs": "~1.2.2"
+    "log-range-query": "~1.0.2",
+    "qs": "~1.2.2",
+    "pull-stream-to-stream": "~1.2.6",
+    "pull-rebuffer": "~1.0.0",
+    "pull-stream": "~2.24.0",
+    "stream-to-pull-stream": "~1.4.1",
+    "funnel-stream": "~0.0.0",
+    "rc": "~0.5.0"
   },
   "devDependencies": {},
   "scripts": {
