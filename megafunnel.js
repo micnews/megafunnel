@@ -2,11 +2,17 @@
 
 // take the aggregated streams and write them out to disk
 
-var http = require('http')
-var CSV = require('csv-line')
+var http      = require('http')
+var CSV       = require('csv-line')
 var logStream = require('log-rotation-stream')
-var logQuery = require('log-range-query')
-var funnel = require('funnel-stream')
+var logQuery  = require('log-range-query')
+var funnel    = require('funnel-stream')
+var fs        = require('fs')
+var path      = require('path')
+var url       = require('url')
+var qs        = require('querystring')
+var toPull    = require('stream-to-pull-stream')
+var net       = require('net')
 
 var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
 
@@ -17,30 +23,53 @@ module.exports = function (config) {
 
   var log = logStream(config.logDir, config.maxSize || GB)
 
-  //THIS IS NOT READY YET
-  var lrq = logQuery(config.logDir, function (line, opts) {
-    var data = CSV.decode(line)
-    var ts = data[0]
-    //************************
-  })
+  function createQueryStream (opts) {
+    return logQuery({
+      dir: config.logDir,
+      gt: opts.gt,
+      lt: opts.lt
+    })
+  }
 
   var f = funnel()
 
   f.createOutput().pipe(log)
 
+  net.createServer(function (stream) {
+    stream.pipe(f.createInput())
+  }).listen(config.megaNetPort)
+
   http.createServer(function (req, res) {
     console.log(req.url)
-    if(req.url == '/track')
-      req.pipe(f.createInput())
-    else if(req.url == '/script.js') {
-      res.setHeader('content-type', 'application/js')
+    var q = url.parse(req.url)
+    var opts = qs.parse(q.query)
+    var pathname = q.pathname
+
+    if(pathname == '/track') {
+      req
+        .pipe(f.createInput())
+    }
+    else if(pathname == '/script.js') {
+      res.setHeader('content-type', 'application/javascript')
       res.end(script)
     }
-    else if(req.url == '/query') {
-      //TODO
-      
+    else if(pathname == '/query') {
+
+      pull(
+        createQueryStream(opts),
+        rebuffer(40*1024),
+        toPull(res)
+      )
+
+      req.resume()
     }
   })
-    .listen(config.megaPort)
+    .listen(config.megaPort, function () {
+      console.error('megafunnel listening on:' + config.megaPort)
+    })
 
+}
+
+if(!module.parent) {
+  module.exports(require('./config'))
 }
