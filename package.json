@@ -12,7 +12,6 @@
     "reconnect-net": "~0.0.0",
     "log-rotation-stream": "~0.0.0",
     "log-range-query": "~1.0.2",
-    "qs": "~1.2.2",
     "pull-stream-to-stream": "~1.2.6",
     "pull-rebuffer": "~1.0.0",
     "pull-stream": "~2.24.0",
