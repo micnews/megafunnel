@@ -1,3 +1,4 @@
+#! /bin/env node
 'use strict'
 
 // take the aggregated streams and write them out to disk

@@ -1,3 +1,4 @@
+#! /bin/env node
 'use strict'
 
 //create a server that accepts analytics data
