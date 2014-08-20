@@ -1,6 +1,6 @@
 {
   "name": "funnel-server",
-  "description": "",
+  "description": "big data analytics",
   "version": "0.0.0",
   "homepage": "https://github.com/micnews/megafunnel",
   "repository": {
@@ -20,6 +20,10 @@
     "rc": "~0.5.0"
   },
   "devDependencies": {},
+  "bin": {
+    "megafunnel": "./megafunnel.js",
+    "megafunnel-input": "./funnel.js"
+  },
   "scripts": {
     "test": "set -e; for t in test/*.js; do node $t; done"
   },
