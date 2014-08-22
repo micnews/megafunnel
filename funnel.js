@@ -38,7 +38,8 @@ module.exports = function (config) {
   reconnect(function (stream) {
     console.error('connected to megafunnel')
     stream.setNoDelay(true)
-    f.createOutput().pipe(stream)
+    f.createOutput()
+      .pipe(stream)
   })
     .connect(config.megaNetPort, config.megaHost)
     .on('disconnect', function () {
@@ -53,9 +54,14 @@ module.exports = function (config) {
       res.setHeader('content-type', 'application/javascript')
       res.end(script)
     }
-    else if(req.url == '/track')
+    else if(req.url == '/track') {
       req
         .pipe(f.createInput())
+      req.on('end', function () {
+        res.writeHead(200)
+        res.end('{"okay": true}\n')
+      })
+    }
     else {
       req.resume()
       res.setHeader('content-type', 'text/html')
