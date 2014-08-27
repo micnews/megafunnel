@@ -21,7 +21,8 @@
     "condor": "~1.0.0"
   },
   "devDependencies": {
-    "xhr": "~1.15.0"
+    "xhr": "~1.15.0",
+    "browserify": "~5.10.1"
   },
   "bin": {
     "megafunnel": "./megafunnel.js",
