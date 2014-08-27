@@ -1,7 +1,215 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var addEventListener = require('add-event-listener')
+  , bind = require('component-bind')
+  , debounce = require('debounce')
+  , pageVisibility = require('page-visibility')
+  , forEach = require('for-each')
+  , getCssPath = require('css-path')
+  , toArray = require('to-array')
+  , toCsv = require('csv-line')({ escapeNewlines: true })
+  , now = require('date-now')
+
+  , Condor = function (options) {
+      if (!(this instanceof Condor))
+        return new Condor(options)
+
+      options = options || {}
+
+      this._startTime = now()
+      this._timezone = (new Date()).getTimezoneOffset()
+      this._windowWidth = []
+      this._windowHeight = []
+      this._scrollOffset = 0
+      this._resizeOffset = 0
+      this.onevent = null
+      this.onend = null
+
+      this._debounceTime = typeof(options.debounceTime) === 'number' ?
+        options.debounceTime : 500
+
+      this._startTracking()
+    }
+  , isTrackable = function (elm) {
+      return elm.getAttribute('data-trackable-type') && elm.getAttribute('data-trackable-value')
+    }
+  , findTrackable = function (elm) {
+      var trackable = []
+
+      for(; !!elm.tagName; elm = elm.parentNode) {
+        if (isTrackable(elm))
+          trackable.push(elm)
+      }
+
+      return trackable
+    }
+  , findAllTrackable = function () {
+      return toArray(document.querySelectorAll('[data-trackable-type][data-trackable-value]'))
+    }
+
+Condor.prototype._toCsv = function (eventType, extra, duration) {
+  duration = typeof(duration) === 'number' ? duration : now() - this._startTime
+
+  extra = extra || {}
+
+  var array = [
+          eventType
+        , window.innerWidth
+        , window.innerHeight
+        // pageXOffset & pageYOffset instead of scrollX/scrollY for browser
+        // compability
+        // https://developer.mozilla.org/en-US/docs/Web/API/Window.scrollX#Notes
+        , window.pageXOffset
+        , window.pageYOffset
+        , window.location.toString()
+        , duration
+        , (new Date()).toUTCString()
+        , this._timezone
+        , document.referrer
+        , extra.path
+        , extra.clickX
+        , extra.clickY
+        , extra.href
+        , extra.target
+        , extra.visibility
+        , extra.name
+        , extra.trackableType
+        , extra.trackableValue
+      ]
+
+  return toCsv(array)
+}
+
+Condor.prototype._startTracking = function () {
+  var self = this
+    , track = function (eventType, extra, duration) {
+        var csv = self._toCsv(eventType, extra, duration)
+
+        if (self.onevent)
+          self.onevent(csv)
+      }
+    , trackScroll = debounce(bind(null, track, 'scroll'), this._debounceTime)
+    , trackResize = debounce(bind(null, track, 'resize'), this._debounceTime)
+    , trackTrackable = function (eventType, elm) {
+        track(
+            eventType
+          , {
+                trackableValue: elm.getAttribute('data-trackable-value')
+              , trackableType: elm.getAttribute('data-trackable-type')
+              , path: getCssPath(elm)
+            }
+        )
+      }
+    , trackVisibleTrackingElements = function () {
+        forEach(findAllTrackable(), function (elm) {
+          if (elm.getBoundingClientRect().top < window.innerHeight && !elm.trackedVisibility) {
+            elm.trackedVisibility = true
+            trackTrackable('trackable-visible', elm)
+          }
+        })
+      }
+
+  addEventListener(window, 'resize', function () {
+    // must do this cause IE9 is stupid
+    // ... and I'm also seeing some weirdness when tracking in Chrome without it
+    if (window.innerWidth !== self._windowWidth || window.innerHeight !== self._windowHeight) {
+      self._windowWidth = window.innerWidth
+      self._windowHeight = window.innerHeight
+      self._resizeOffset = now() - self._startTime
+      trackResize()
+    }
+  })
+
+  addEventListener(window, 'scroll', function () {
+    self._scrollOffset = now() - self._startTime
+
+    trackVisibleTrackingElements()
+
+    trackScroll()
+  })
+
+  pageVisibility(function (visible) {
+    // getting the visibility make take some time, but the  duration should be 0
+    // - it's the visibiltiy that existed when the page was loaded
+    track('visibility', { visibility: visible ? 'visible' : 'hidden' }, 0 )
+  })
+
+  addEventListener(window, 'load', function () {
+    track('load')
+
+    forEach(findAllTrackable(), function (elm) {
+      trackTrackable('trackable-load', elm)
+    })
+
+    trackVisibleTrackingElements()
+  })
+
+  addEventListener(window, 'focus', function () {
+    track('visibility', { visibility: 'visible' })
+  })
+  addEventListener(window, 'blur', function () {
+    track('visibility', { visibility: 'hidden' })
+  })
+
+  addEventListener(document, 'change', function (event) {
+    var elm = event.target
+      , path = elm ? getCssPath(elm, document.body) : undefined
+      , name = elm ? elm.getAttribute('name') : undefined
+
+    track('change', { path: path, name: name })
+  })
+
+  addEventListener(window, 'beforeunload', function (event) {
+    self.onend(self._toCsv('end'))
+  })
+
+  addEventListener(document, 'click', function (event) {
+    event = event || window.event
+
+    var elm = event.target || event.srcElement
+      , path = elm ? getCssPath(elm, document.body) : undefined
+        // href & target is useful for a-element
+        // if we're in a subelement, see if there's a parentNode that's
+        // an a-element
+      , aElm = (function (aElm) {
+          for(aElm = aElm; aElm.tagName; aElm = aElm.parentNode ) {
+            if (aElm.tagName === 'A')
+              return aElm
+          }
+        })(elm)
+      , href = aElm ? aElm.getAttribute('href') : undefined
+      , target = aElm ? aElm.getAttribute('target') : undefined
+      , extra = {
+            path: path
+          , clickX: event.pageX
+          , clickY: event.pageY
+          , href: href
+          , target: target
+        }
+
+    track('click', extra)
+
+    forEach(findTrackable(elm), function (trackElm) {
+      trackTrackable('trackable-click', trackElm)
+    })
+  })
+
+  addEventListener(document, 'mouseover', function (event) {
+    event = event || window.event
+
+    var elm = event.target || event.srcElement
+
+    forEach(findTrackable(elm), function (trackElm) {
+      trackTrackable('trackable-hover', trackElm)
+    })
+  })
+}
+
+module.exports = Condor
+
+},{"add-event-listener":3,"component-bind":4,"css-path":5,"csv-line":13,"date-now":7,"debounce":8,"for-each":9,"page-visibility":11,"to-array":12}],2:[function(require,module,exports){
 var debounce = require('debounce')
   , xhr = require('xhr')
-  , track = require('../track')()
+  , condor = require('../../condor')()
 
   , noop = function () {}
   , data = []
@@ -15,17 +223,18 @@ var debounce = require('debounce')
       xhr({
           method: 'POST'
         , body: body
-        , uri: '/track'
+        , uri: '/condor'
+        , response: true
       }, noop)
     }, 1000)
 
-track.onevent = function (csv) {
+condor.onevent = function (csv) {
   data.push(csv)
   batchPost()
 }
 
 // this gets called by beforeunload - so anything in here must be synchronous
-track.onend = function (csv) {
+condor.onend = function (csv) {
   data.push(csv)
 
   // this will be an end-event - meaning that the visit on the page has ended
@@ -34,9 +243,11 @@ track.onend = function (csv) {
     , body: data.join('\n')
     , uri: '/track'
     , sync: true
+    , response: true
   }, noop)
 }
-},{"../track":13,"debounce":6,"xhr":10}],2:[function(require,module,exports){
+
+},{"../../condor":1,"debounce":8,"xhr":14}],3:[function(require,module,exports){
 addEventListener.removeEventListener = removeEventListener
 addEventListener.addEventListener = addEventListener
 
@@ -84,11 +295,35 @@ function oldIEDetach(el, eventName, listener, useCapture) {
   el.detachEvent('on' + eventName, listener)
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+/**
+ * Slice reference.
+ */
+
+var slice = [].slice;
+
+/**
+ * Bind `obj` to `fn`.
+ *
+ * @param {Object} obj
+ * @param {Function|String} fn or string
+ * @return {Function}
+ * @api public
+ */
+
+module.exports = function(obj, fn){
+  if ('string' == typeof fn) fn = obj[fn];
+  if ('function' != typeof fn) throw new Error('bind() requires a function');
+  var args = slice.call(arguments, 2);
+  return function(){
+    return fn.apply(obj, args.concat(slice.call(arguments)));
+  }
+};
+
+},{}],5:[function(require,module,exports){
 var trim = require('trim')
 
   , classSelector = function (className) {
-      console.log('1')
       var selectors = className.split(/\s/g)
         , array = []
 
@@ -98,7 +333,6 @@ var trim = require('trim')
         }
       }
 
-      console.log('2')
       return array.join('')
     }
 
@@ -147,7 +381,7 @@ var trim = require('trim')
 module.exports = function (elm, rootNode) {
   return path(elm, rootNode, []).join(' > ')
 }
-},{"trim":4}],4:[function(require,module,exports){
+},{"trim":6}],6:[function(require,module,exports){
 
 exports = module.exports = trim;
 
@@ -163,39 +397,14 @@ exports.right = function(str){
   return str.replace(/\s*$/, '');
 };
 
-},{}],5:[function(require,module,exports){
-var map = function (input, fn) {
-      var result = Array(input.length)
+},{}],7:[function(require,module,exports){
+module.exports = Date.now || now
 
-      for(var i = 0; i < input.length; ++i) {
-        result[i] = fn(input[i])
-      }
-
-      return result
-    }
-
-module.exports = function (options) {
-  var separator = options && options.separator ? options.separator : ','
-    , escapeNewlines = options && options.escapeNewlines === true
-    , regexp = new RegExp('[' + separator + '\r\n"]')
-    , escape = function (cell) {
-
-        if (typeof(cell) === 'string') {
-          if (escapeNewlines) {
-            cell = cell.replace(/\n/g, '\\n')
-          }
-
-          cell = regexp.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell
-        }
-
-        return cell
-      }
-
-  return function (array) {
-    return map(array, escape).join(separator)
-  }
+function now() {
+    return new Date().getTime()
 }
-},{}],6:[function(require,module,exports){
+
+},{}],8:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -250,16 +459,72 @@ module.exports = function debounce(func, wait, immediate){
   };
 };
 
-},{"date-now":7}],7:[function(require,module,exports){
-module.exports = Date.now || now
+},{"date-now":7}],9:[function(require,module,exports){
+var isFunction = require('is-function')
 
-function now() {
-    return new Date().getTime()
+module.exports = forEach
+
+var toString = Object.prototype.toString
+var hasOwnProperty = Object.prototype.hasOwnProperty
+
+function forEach(list, iterator, context) {
+    if (!isFunction(iterator)) {
+        throw new TypeError('iterator must be a function')
+    }
+
+    if (arguments.length < 3) {
+        context = this
+    }
+    
+    if (toString.call(list) === '[object Array]')
+        forEachArray(list, iterator, context)
+    else if (typeof list === 'string')
+        forEachString(list, iterator, context)
+    else
+        forEachObject(list, iterator, context)
 }
 
-},{}],8:[function(require,module,exports){
-module.exports=require(2)
-},{}],9:[function(require,module,exports){
+function forEachArray(array, iterator, context) {
+    for (var i = 0, len = array.length; i < len; i++) {
+        if (hasOwnProperty.call(array, i)) {
+            iterator.call(context, array[i], i, array)
+        }
+    }
+}
+
+function forEachString(string, iterator, context) {
+    for (var i = 0, len = string.length; i < len; i++) {
+        // no such thing as a sparse string.
+        iterator.call(context, string.charAt(i), i, string)
+    }
+}
+
+function forEachObject(object, iterator, context) {
+    for (var k in object) {
+        if (hasOwnProperty.call(object, k)) {
+            iterator.call(context, object[k], k, object)
+        }
+    }
+}
+
+},{"is-function":10}],10:[function(require,module,exports){
+module.exports = isFunction
+
+var toString = Object.prototype.toString
+
+function isFunction (fn) {
+  var string = toString.call(fn)
+  return string === '[object Function]' ||
+    (typeof fn === 'function' && string !== '[object RegExp]') ||
+    (typeof window !== 'undefined' &&
+     // IE8 and below
+     (fn === window.setTimeout ||
+      fn === window.alert ||
+      fn === window.confirm ||
+      fn === window.prompt))
+};
+
+},{}],11:[function(require,module,exports){
 (function (process){
 var addEventListener = require('add-event-listener')
   , removeEventListener = require('add-event-listener').removeEventListener
@@ -301,9 +566,82 @@ module.exports = function (callback) {
   }
 }
 }).call(this,require('_process'))
-},{"_process":14,"add-event-listener":8}],10:[function(require,module,exports){
+},{"_process":21,"add-event-listener":3}],12:[function(require,module,exports){
+module.exports = toArray
+
+function toArray(list, index) {
+    var array = []
+
+    index = index || 0
+
+    for (var i = index || 0; i < list.length; i++) {
+        array[i - index] = list[i]
+    }
+
+    return array
+}
+
+},{}],13:[function(require,module,exports){
+var map = function (input, fn) {
+      var result = Array(input.length)
+
+      for(var i = 0; i < input.length; ++i) {
+        result[i] = fn(input[i])
+      }
+
+      return result
+    }
+
+function createCSV (options, CSV) {
+  var separator = options && options.separator ? options.separator : ','
+    , escapeNewlines = options && options.escapeNewlines === true
+    , regexp = new RegExp('[' + separator + '\r\n"]')
+    , escape = function (cell) {
+
+        if (typeof(cell) === 'string') {
+          if (escapeNewlines) {
+            cell = cell.replace(/\n/g, '\\n')
+          }
+          cell = regexp.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell
+        }
+
+        return cell
+      }
+    , unescape = function (cell) {
+      //remove surrounding chars
+      return cell.replace(/^"/, '')
+        .replace(/"$/, '').replace(/""/g, '"')
+    }
+
+  function encode (array) {
+    return map(array, escape).join(separator)
+  }
+
+  CSV = CSV || encode
+
+  CSV.encode = encode
+  CSV.decode = function (line) {
+    return line.split(/((?:(?:"[^"]*")|[^,])*)/)
+    .filter(function (e, i) {
+      return i % 2
+    })
+    .map(function (l, i) {
+      return l ? !isNaN(l) ? +l : unescape(l) : undefined
+    })
+  }
+
+  CSV.buffer = false
+  CSV.type = 'csv-line'
+
+  return CSV
+}
+
+module.exports = createCSV({escapeNewlines: true}, createCSV)
+
+},{}],14:[function(require,module,exports){
 var window = require("global/window")
 var once = require("once")
+var parseHeaders = require('parse-headers')
 
 var messages = {
     "0": "Internal XMLHttpRequest Error",
@@ -341,6 +679,7 @@ function createXHR(options, callback) {
     var sync = !!options.sync
     var isJson = false
     var key
+    var load = options.response ? loadResponse : loadXhr
 
     if ("json" in options) {
         isJson = true
@@ -401,38 +740,66 @@ function createXHR(options, callback) {
         }
     }
 
-    function load() {
-        var error = null
-        var status = xhr.statusCode = xhr.status
+    function getBody() {
         // Chrome with requestType=blob throws errors arround when even testing access to responseText
         var body = null
 
         if (xhr.response) {
-            body = xhr.body = xhr.response
+            body = xhr.response
         } else if (xhr.responseType === 'text' || !xhr.responseType) {
-            body = xhr.body = xhr.responseText || xhr.responseXML
+            body = xhr.responseText || xhr.responseXML
         }
 
-        if (status === 1223) {
-            status = 204
+        if (isJson) {
+            try {
+                body = JSON.parse(body)
+            } catch (e) {}
         }
 
+        return body
+    }
+
+    function getStatusCode() {
+        return xhr.status === 1223 ? 204 : xhr.status
+    }
+
+    // if we're getting a none-ok statusCode, build & return an error
+    function errorFromStatusCode(status) {
+        var error = null
         if (status === 0 || (status >= 400 && status < 600)) {
             var message = (typeof body === "string" ? body : false) ||
                 messages[String(status).charAt(0)]
             error = new Error(message)
             error.statusCode = status
-        }
-        
+        };
+
+        return error;
+    }
+
+    // will load the data & process the response in a special response object
+    function loadResponse() {
+        var status = getStatusCode();
+        var error = errorFromStatusCode(status);
+        var response = {
+            body: getBody(),
+            statusCode: status,
+            statusText: xhr.statusText,
+            headers: parseHeaders(xhr.getAllResponseHeaders())
+        };
+
+        callback(error, response, response.body);
+    }
+
+    // will load the data and add some response properties to the source xhr
+    // and then respond with that
+    function loadXhr() {
+        var status = getStatusCode()
+        var error = errorFromStatusCode(status)
+
         xhr.status = xhr.statusCode = status;
+        xhr.body = getBody();
 
-        if (isJson) {
-            try {
-                body = xhr.body = JSON.parse(body)
-            } catch (e) {}
-        }
-
-        callback(error, xhr, body)
+        callback(error, xhr, xhr.body);
     }
 
     function error(evt) {
@@ -443,7 +810,7 @@ function createXHR(options, callback) {
 
 function noop() {}
 
-},{"global/window":11,"once":12}],11:[function(require,module,exports){
+},{"global/window":15,"once":16,"parse-headers":20}],15:[function(require,module,exports){
 (function (global){
 if (typeof window !== "undefined") {
     module.exports = window
@@ -454,7 +821,7 @@ if (typeof window !== "undefined") {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports = once
 
 once.proto = once(function () {
@@ -475,203 +842,35 @@ function once (fn) {
   }
 }
 
-},{}],13:[function(require,module,exports){
-var addEventListener = require('add-event-listener')
-  , debounce = require('debounce')
-  , pageVisibility = require('page-visibility')
-  , getCssPath = require('css-path')
-  , toCsv = require('csv-line')({ escapeNewlines: true })
+},{}],17:[function(require,module,exports){
+module.exports=require(9)
+},{"is-function":18}],18:[function(require,module,exports){
+module.exports=require(10)
+},{}],19:[function(require,module,exports){
+module.exports=require(6)
+},{}],20:[function(require,module,exports){
+var trim = require('trim')
+  , forEach = require('for-each')
 
-  , slice = Array.prototype.slice
+module.exports = function (headers) {
+  if (!headers)
+    return {}
 
-  , Track = function (options) {
-      if (!(this instanceof Track))
-        return new Track(options)
+  var result = {}
 
-      options = options || {}
+  forEach(
+      trim(headers).split('\n')
+    , function (row) {
+        var index = row.indexOf(':')
 
-      this._startTime = Date.now()
-      this._windowWidth = []
-      this._windowHeight = []
-      this._scrollOffset = 0
-      this._resizeOffset = 0
-      this.onevent = null
-      this.onend = null
-
-      this._debounceTime = typeof(options.debounceTime) === 'number' ?
-        options.debounceTime : 500
-
-      this._startTracking()
-    }
-  , isTrackable = function (elm) {
-      return elm.getAttribute('data-trackable-type') && elm.getAttribute('data-trackable-value')
-    }
-  , findTrackable = function (elm) {
-      var trackable = []
-
-      for(; !!elm.tagName; elm = elm.parentNode) {
-        if (isTrackable(elm))
-          trackable.push(elm)
+        result[trim(row.slice(0, index)).toLowerCase()] =
+          trim(row.slice(index + 1))
       }
+  )
 
-      return trackable
-    }
-  , findAllTrackable = function () {
-      return slice.call(document.querySelectorAll('[data-trackable-type][data-trackable-value]'))
-    }
-
-Track.prototype._toCsv = function (eventType, extra, offset) {
-  offset = typeof(offset) === 'number' ? offset : Date.now() - this._startTime
-
-  extra = extra || {}
-
-  var array = [
-          eventType
-        , window.innerWidth
-        , window.innerHeight
-        , window.scrollX
-        , window.scrollY
-        , window.location.toString()
-        , offset
-        , document.referrer
-        , extra.path
-        , extra.clickX
-        , extra.clickY
-        , extra.href
-        , extra.target
-        , extra.visibility
-        , extra.name
-        , extra.trackableType
-        , extra.trackableValue
-      ]
-
-  return toCsv(array)
+  return result
 }
-
-Track.prototype._startTracking = function () {
-  var self = this
-    , track = function (eventType, extra, offset) {
-        var csv = self._toCsv(eventType, extra, offset)
-
-        if (self.onevent)
-          self.onevent(csv)
-      }
-    , trackScroll = debounce(track.bind(null, 'scroll'), this._debounceTime)
-    , trackResize = debounce(track.bind(null, 'resize'), this._debounceTime)
-    , trackTrackable = function (eventType, elm) {
-        track(
-            eventType
-          , {
-                trackableValue: elm.getAttribute('data-trackable-value')
-              , trackableType: elm.getAttribute('data-trackable-type')
-              , path: getCssPath(elm)
-            }
-        )
-      }
-    , trackVisibleTrackingElements = function () {
-        findAllTrackable().forEach(function (elm) {
-          if (elm.getBoundingClientRect().top < window.innerHeight && !elm.trackedVisibility) {
-            elm.trackedVisibility = true
-            trackTrackable('trackable-visible', elm)
-          }
-        })
-      }
-
-  addEventListener(window, 'resize', function () {
-    // must do this cause IE9 is stupid
-    // ... and I'm also seeing some weirdness when tracking in Chrome without it
-    if (window.innerWidth !== self._windowWidth || window.innerHeight !== self._windowHeight) {
-      self._windowWidth = window.innerWidth
-      self._windowHeight = window.innerHeight
-      self._resizeOffset = Date.now() - self._startTime
-      trackResize()
-    }
-  })
-
-  addEventListener(window, 'scroll', function () {
-    self._scrollOffset = Date.now() - self._startTime
-
-    trackVisibleTrackingElements()
-
-    trackScroll()
-  })
-
-  pageVisibility(function (visible) {
-    // getting the visibility make take some time, but the  offset should be 0
-    // - it's the visibiltiy that existed when the page was loaded
-    track('visibility', { visibility: visible ? 'visible' : 'hidden' }, 0 )
-  })
-
-  addEventListener(window, 'load', function () {
-    track('load')
-
-    findAllTrackable().forEach(function (elm) {
-      trackTrackable('trackable-load', elm)
-    })
-
-    trackVisibleTrackingElements()
-  })
-
-  addEventListener(window, 'focus', function () {
-    track('visibility', { visibility: 'visible' })
-  })
-  addEventListener(window, 'blur', function () {
-    track('visibility', { visibility: 'hidden' })
-  })
-
-  addEventListener(document, 'change', function (event) {
-    var elm = event.target
-      , path = elm ? getCssPath(elm, document.body) : undefined
-      , name = elm ? elm.getAttribute('name') : undefined
-
-    track('change', { path: path, name: name })
-  })
-
-  addEventListener(window, 'beforeunload', function (event) {
-    self.onend(self._toCsv('end'))
-  })
-
-  addEventListener(document, 'click', function (event) {
-    var elm = event.target
-      , path = elm ? getCssPath(elm, document.body) : undefined
-        // href & target is useful for a-element
-        // if we're in a subelement, see if there's a parentNode that's
-        // an a-element
-      , aElm = (function (aElm) {
-          for(aElm = aElm; aElm.tagName; aElm = aElm.parentNode ) {
-            if (aElm.tagName === 'A')
-              return aElm
-          }
-        })(elm)
-      , href = aElm ? aElm.getAttribute('href') : undefined
-      , target = aElm ? aElm.getAttribute('target') : undefined
-      , extra = {
-            path: path
-          , clickX: event.pageX
-          , clickY: event.pageY
-          , href: href
-          , target: target
-        }
-
-    track('click', extra)
-
-    findTrackable(elm).forEach(function (trackElm) {
-      trackTrackable('trackable-click', trackElm)
-    })
-  })
-
-  addEventListener(document, 'mouseover', function (event) {
-    var elm = event.target
-
-    findTrackable(elm).forEach(function (trackElm) {
-      trackTrackable('trackable-hover', trackElm)
-    })
-  })
-}
-
-module.exports = Track
-
-},{"add-event-listener":2,"css-path":3,"csv-line":5,"debounce":6,"page-visibility":9}],14:[function(require,module,exports){
+},{"for-each":17,"trim":19}],21:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -736,4 +935,4 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}]},{},[1]);
+},{}]},{},[2]);
