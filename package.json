@@ -18,7 +18,7 @@
     "stream-to-pull-stream": "~1.4.1",
     "funnel-stream": "~0.0.0",
     "rc": "~0.5.0",
-    "condor": "~1.0.0"
+    "condor": "dominictarr/condor"
   },
   "devDependencies": {
     "xhr": "~1.15.0",
