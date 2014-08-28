@@ -12,8 +12,11 @@ var fs        = require('fs')
 var path      = require('path')
 var url       = require('url')
 var qs        = require('querystring')
-var toPull    = require('stream-to-pull-stream')
 var net       = require('net')
+
+var pull      = require('pull-stream')
+var toPull    = require('stream-to-pull-stream')
+var rebuffer  = require('pull-rebuffer')
 
 var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
 
@@ -51,7 +54,6 @@ module.exports = function (config) {
           res.end()
         })
         .pipe(f.createInput())
-        
     }
     else if(pathname == '/script.js') {
       res.setHeader('content-type', 'application/javascript')
