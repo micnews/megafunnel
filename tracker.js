@@ -1,4 +1,69 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
+
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
+    }
+
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            var source = ev.source;
+            if ((source === window || source === null) && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
+    }
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+
+},{}],2:[function(require,module,exports){
 var addEventListener = require('add-event-listener')
   , bind = require('component-bind')
   , debounce = require('debounce')
@@ -206,48 +271,16 @@ Condor.prototype._startTracking = function () {
 
 module.exports = Condor
 
-},{"add-event-listener":3,"component-bind":4,"css-path":5,"csv-line":13,"date-now":7,"debounce":8,"for-each":9,"page-visibility":11,"to-array":12}],2:[function(require,module,exports){
-var debounce = require('debounce')
-  , xhr = require('xhr')
-  , condor = require('../../condor')()
+},{"add-event-listener":4,"component-bind":5,"css-path":6,"csv-line":15,"date-now":8,"debounce":9,"for-each":10,"page-visibility":12,"to-array":13}],3:[function(require,module,exports){
+//run the xhr client, overriding the default path
+require('../../xhr')({path: '/condor'})
 
-  , noop = function () {}
-  , data = []
+// if you have installed condor with npm
+// then this will look like:
+//   require('condor/xhr')({path: '/condor'})
+// instead.
 
-    // save all events happening within a second and send them in one POST
-    //  request
-  , batchPost = debounce(function () {
-      var body = data.join('\n')
-      data = []
-
-      xhr({
-          method: 'POST'
-        , body: body
-        , uri: '/condor'
-        , response: true
-      }, noop)
-    }, 1000)
-
-condor.onevent = function (csv) {
-  data.push(csv)
-  batchPost()
-}
-
-// this gets called by beforeunload - so anything in here must be synchronous
-condor.onend = function (csv) {
-  data.push(csv)
-
-  // this will be an end-event - meaning that the visit on the page has ended
-  xhr({
-      method: 'POST'
-    , body: data.join('\n')
-    , uri: '/track'
-    , sync: true
-    , response: true
-  }, noop)
-}
-
-},{"../../condor":1,"debounce":8,"xhr":14}],3:[function(require,module,exports){
+},{"../../xhr":14}],4:[function(require,module,exports){
 addEventListener.removeEventListener = removeEventListener
 addEventListener.addEventListener = addEventListener
 
@@ -295,7 +328,7 @@ function oldIEDetach(el, eventName, listener, useCapture) {
   el.detachEvent('on' + eventName, listener)
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -320,7 +353,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var trim = require('trim')
 
   , classSelector = function (className) {
@@ -381,7 +414,7 @@ var trim = require('trim')
 module.exports = function (elm, rootNode) {
   return path(elm, rootNode, []).join(' > ')
 }
-},{"trim":6}],6:[function(require,module,exports){
+},{"trim":7}],7:[function(require,module,exports){
 
 exports = module.exports = trim;
 
@@ -397,14 +430,14 @@ exports.right = function(str){
   return str.replace(/\s*$/, '');
 };
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 module.exports = Date.now || now
 
 function now() {
     return new Date().getTime()
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -459,7 +492,7 @@ module.exports = function debounce(func, wait, immediate){
   };
 };
 
-},{"date-now":7}],9:[function(require,module,exports){
+},{"date-now":8}],10:[function(require,module,exports){
 var isFunction = require('is-function')
 
 module.exports = forEach
@@ -507,7 +540,7 @@ function forEachObject(object, iterator, context) {
     }
 }
 
-},{"is-function":10}],10:[function(require,module,exports){
+},{"is-function":11}],11:[function(require,module,exports){
 module.exports = isFunction
 
 var toString = Object.prototype.toString
@@ -524,7 +557,7 @@ function isFunction (fn) {
       fn === window.prompt))
 };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (process){
 var addEventListener = require('add-event-listener')
   , removeEventListener = require('add-event-listener').removeEventListener
@@ -566,7 +599,7 @@ module.exports = function (callback) {
   }
 }
 }).call(this,require('_process'))
-},{"_process":21,"add-event-listener":3}],12:[function(require,module,exports){
+},{"_process":1,"add-event-listener":4}],13:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -581,7 +614,54 @@ function toArray(list, index) {
     return array
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
+var debounce = require('debounce')
+  , xhr = require('xhr')
+  , condor = require('./condor')()
+
+  , noop = function () {}
+  , data = []
+
+    // save all events happening within a second and send them in one POST
+    //  request
+
+module.exports = function (opts) {
+  opts = opts || {}
+  var path = opts.path || '/track'
+  var batchPost = debounce(function () {
+        var body = data.join('\n')
+        data = []
+
+        xhr({
+            method: 'POST'
+          , body: body
+          , uri: path
+          , response: true
+        }, noop)
+      }, 1000)
+
+  condor.onevent = function (csv) {
+    data.push(csv)
+    batchPost()
+  }
+
+  // this gets called by beforeunload - so anything in here must be synchronous
+  condor.onend = function (csv) {
+    data.push(csv)
+
+    // this will be an end-event - meaning that the visit on the page has ended
+    xhr({
+        method: 'POST'
+      , body: data.join('\n')
+      , uri: path
+      , sync: true
+      , response: true
+    }, noop)
+  }
+
+}
+
+},{"./condor":2,"debounce":9,"xhr":16}],15:[function(require,module,exports){
 var map = function (input, fn) {
       var result = Array(input.length)
 
@@ -638,7 +718,7 @@ function createCSV (options, CSV) {
 
 module.exports = createCSV({escapeNewlines: true}, createCSV)
 
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var window = require("global/window")
 var once = require("once")
 var parseHeaders = require('parse-headers')
@@ -810,7 +890,7 @@ function createXHR(options, callback) {
 
 function noop() {}
 
-},{"global/window":15,"once":16,"parse-headers":20}],15:[function(require,module,exports){
+},{"global/window":17,"once":18,"parse-headers":22}],17:[function(require,module,exports){
 (function (global){
 if (typeof window !== "undefined") {
     module.exports = window
@@ -821,7 +901,7 @@ if (typeof window !== "undefined") {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports = once
 
 once.proto = once(function () {
@@ -842,13 +922,13 @@ function once (fn) {
   }
 }
 
-},{}],17:[function(require,module,exports){
-module.exports=require(9)
-},{"is-function":18}],18:[function(require,module,exports){
-module.exports=require(10)
 },{}],19:[function(require,module,exports){
-module.exports=require(6)
-},{}],20:[function(require,module,exports){
+module.exports=require(10)
+},{"is-function":20}],20:[function(require,module,exports){
+module.exports=require(11)
+},{}],21:[function(require,module,exports){
+module.exports=require(7)
+},{}],22:[function(require,module,exports){
 var trim = require('trim')
   , forEach = require('for-each')
 
@@ -870,69 +950,4 @@ module.exports = function (headers) {
 
   return result
 }
-},{"for-each":17,"trim":19}],21:[function(require,module,exports){
-// shim for using process in browser
-
-var process = module.exports = {};
-
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
-
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            var source = ev.source;
-            if ((source === window || source === null) && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-}
-
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-
-},{}]},{},[2]);
+},{"for-each":19,"trim":21}]},{},[3]);
