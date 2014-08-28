@@ -47,7 +47,11 @@ module.exports = function (config) {
 
     if(pathname == '/track') {
       req
+        .on('end', function () {
+          res.end()
+        })
         .pipe(f.createInput())
+        
     }
     else if(pathname == '/script.js') {
       res.setHeader('content-type', 'application/javascript')
