@@ -14,7 +14,7 @@ var net       = require('net')
 var pull      = require('pull-stream')
 var toPull    = require('stream-to-pull-stream')
 var rebuffer  = require('pull-rebuffer')
-var tracker   = require('./tracker')
+var tracker   = require('./buildTracker')
 
 module.exports = function (config) {
 

@@ -1,13 +1,9 @@
-'use strict'
-
 var fs    = require('fs')
 var getIP = require('external-ip')()
 var bs    = require('browserify-string')
 var path  = require('path')
 
-var script = fs.readFileSync(path.join(__dirname, 'condor.template'), {
-  encoding: 'utf8'
-})
+var script = fs.readFileSync(path.join(__dirname, 'condor.template'), 'utf8')
 
 var condor = module.exports = {}
 
