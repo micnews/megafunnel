@@ -8,29 +8,30 @@
     "url": "git://github.com/micnews/megafunnel.git"
   },
   "dependencies": {
+    "browserify": "^5.11.2",
+    "browserify-string": "^1.1.0",
+    "condor": "^1.1.0",
     "csv-line": "~1.2.0",
-    "reconnect-net": "~0.0.0",
-    "log-rotation-stream": "~0.0.0",
+    "external-ip": "^0.2.3",
+    "funnel-stream": "~0.0.0",
     "log-range-query": "~1.0.2",
-    "pull-stream-to-stream": "~1.2.6",
+    "log-rotation-stream": "~0.0.0",
     "pull-rebuffer": "~1.0.0",
     "pull-stream": "~2.24.1",
-    "stream-to-pull-stream": "~1.4.1",
-    "funnel-stream": "~0.0.0",
+    "pull-stream-to-stream": "~1.2.6",
     "rc": "~0.5.0",
-    "condor": "dominictarr/condor"
+    "reconnect-net": "~0.0.0",
+    "stream-to-pull-stream": "~1.4.1"
   },
   "devDependencies": {
-    "xhr": "~1.15.0",
-    "browserify": "~5.10.1"
+    "xhr": "~1.15.0"
   },
   "bin": {
     "megafunnel": "./megafunnel.js",
     "megafunnel-input": "./funnel.js"
   },
   "scripts": {
-    "test": "set -e; for t in test/*.js; do node $t; done",
-    "build": "browserify node_modules/condor/example/xhr/client.js > tracker.js"
+    "test": "set -e; for t in test/*.js; do node $t; done"
   },
   "author": "Dominic Tarr <dominictarr@micnews.com> (https://mic.com)",
   "license": "MIT"

@@ -1,0 +1,36 @@
+
+var trackUri = '//{{HOST}}:4001/track'
+
+var xhr = require('xhr')
+var track = require('condor')({
+        // default 500ms
+        // set for how long time scroll & resize events should be
+        // [debounced](https://www.npmjs.org/package/debounce)
+        // The `duration`-attribute is the last of these events.
+
+        debounceTime: 300
+    })
+
+  , noop = function () {}
+
+track.onevent = function (csv) {
+  // this callback is called everytime an event happens
+  // the data is a line of csv, see below for information on the format of the
+  // csv
+  xhr({
+      method: 'POST'
+    , body: csv
+    , uri: trackUri
+  }, noop)
+}
+
+// this gets called by beforeunload - so anything in here must be synchronous
+track.onend = function (csv) {
+  // this will be an end-event - meaning that the visit on the page has ended
+  xhr({
+      method: 'POST'
+    , body: csv
+    , uri: trackUri
+    , sync: true
+  }, noop)
+}
