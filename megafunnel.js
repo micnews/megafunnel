@@ -8,18 +8,13 @@ var CSV       = require('csv-line')
 var logStream = require('log-rotation-stream')
 var logQuery  = require('log-range-query')
 var funnel    = require('funnel-stream')
-var fs        = require('fs')
-var path      = require('path')
 var url       = require('url')
 var qs        = require('querystring')
 var net       = require('net')
-
 var pull      = require('pull-stream')
 var toPull    = require('stream-to-pull-stream')
 var rebuffer  = require('pull-rebuffer')
-
-var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
-
+var tracker   = require('./buildTracker')
 
 module.exports = function (config) {
 
@@ -57,7 +52,7 @@ module.exports = function (config) {
     }
     else if(pathname == '/script.js') {
       res.setHeader('content-type', 'application/javascript')
-      res.end(script)
+      res.end(tracker.script)
     }
     else if(pathname == '/query') {
 
