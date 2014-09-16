@@ -13,10 +13,13 @@ var fs        = require('fs')
 var url       = require('url')
 var http      = require('http')
 var net       = require('net')
+var Monitor   = require('./monitor')
+
 
 var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
 
 module.exports = function (config) {
+  var monitor = Monitor.perSecond()
 
   var f = funnel(function (line) {
     //ensure that line lengths are reasonable.
@@ -39,6 +42,7 @@ module.exports = function (config) {
     console.error('connected to megafunnel')
     stream.setNoDelay(true)
     f.createOutput()
+      .on('data', function (d) { monitor(d.length) })
       .pipe(stream)
   })
     .connect(config.megaNetPort, config.megaHost)
