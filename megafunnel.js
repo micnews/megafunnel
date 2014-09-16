@@ -20,6 +20,7 @@ var rebuffer  = require('pull-rebuffer')
 
 var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
 
+var monitor = require('./monitor').perSecond()
 
 module.exports = function (config) {
 
@@ -40,6 +41,9 @@ module.exports = function (config) {
   f.createOutput().pipe(log)
 
   net.createServer(function (stream) {
+    stream.on('data', function (d) {
+      monitor(d.length)
+    })
     stream.pipe(f.createInput())
   }).listen(config.megaNetPort)
 
@@ -59,14 +63,13 @@ module.exports = function (config) {
       res.setHeader('content-type', 'application/javascript')
       res.end(script)
     }
-    else if(pathname == '/query') {
 
+    else if(pathname == '/query') {
       pull(
         createQueryStream(opts),
         rebuffer(40*1024),
         toPull(res)
       )
-
       req.resume()
     }
   })
