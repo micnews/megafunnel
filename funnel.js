@@ -62,8 +62,8 @@ module.exports = function (config) {
       req
         .pipe(f.createInput())
       req.on('end', function () {
-        res.writeHead(200)
         res.setHeader('Access-Control-Allow-Origin', '*')
+        res.writeHead(200)
         res.end('{"okay": true}\n')
       })
     }
