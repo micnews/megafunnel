@@ -1,7 +1,12 @@
 
 var url = require('url')
 
-var obj = url.parse(document.currentScript.src)
+//ie8 polyfil
+require('document.currentscript')
+
+var src = (document.currentScript || document._currentScript).src
+
+var obj = url.parse(src)
 
 delete obj.pathname
 delete obj.href
