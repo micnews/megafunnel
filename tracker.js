@@ -17,7 +17,7 @@ obj.pathname = '/track'
 console.log(url.format(obj))
 
 require('condor/xhr')({
-  uri: url.format(obj)
+  path: url.format(obj)
 })
 
 },{"condor/xhr":19,"document.currentscript":21,"url":7}],2:[function(require,module,exports){
@@ -1706,7 +1706,7 @@ function addEventListener(el, eventName, listener, useCapture) {
     {add: stdAttach, rm: stdDetach} :
     {add: oldIEAttach, rm: oldIEDetach}
   )
-  
+
   return Events.add(el, eventName, listener, useCapture)
 }
 
@@ -1716,7 +1716,7 @@ function removeEventListener(el, eventName, listener, useCapture) {
     {add: stdAttach, rm: stdDetach} :
     {add: oldIEAttach, rm: oldIEDetach}
   )
-  
+
   return Events.rm(el, eventName, listener, useCapture)
 }
 
@@ -1920,7 +1920,7 @@ function forEach(list, iterator, context) {
     if (arguments.length < 3) {
         context = this
     }
-    
+
     if (toString.call(list) === '[object Array]')
         forEachArray(list, iterator, context)
     else if (typeof list === 'string')
@@ -2411,8 +2411,8 @@ function createXHR(options, callback) {
     if ("responseType" in options) {
         xhr.responseType = options.responseType
     }
-    
-    if ("beforeSend" in options && 
+
+    if ("beforeSend" in options &&
         typeof options.beforeSend === "function"
     ) {
         options.beforeSend(xhr)

@@ -16,5 +16,5 @@ obj.pathname = '/track'
 console.log(url.format(obj))
 
 require('condor/xhr')({
-  uri: url.format(obj)
+  path: url.format(obj)
 })
