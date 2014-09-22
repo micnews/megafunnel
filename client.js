@@ -2,7 +2,7 @@
 var url = require('url')
 
 //ie8 polyfil
-require('document.currentscript')
+require('currentscript')
 
 var src = (document.currentScript || document._currentScript).src
 

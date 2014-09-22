@@ -3,7 +3,7 @@
 var url = require('url')
 
 //ie8 polyfil
-require('document.currentscript')
+require('currentscript')
 
 var src = (document.currentScript || document._currentScript).src
 
@@ -20,7 +20,7 @@ require('condor/xhr')({
   path: url.format(obj)
 })
 
-},{"condor/xhr":19,"document.currentscript":21,"url":7}],2:[function(require,module,exports){
+},{"condor/xhr":19,"currentscript":21,"url":7}],2:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1706,7 +1706,7 @@ function addEventListener(el, eventName, listener, useCapture) {
     {add: stdAttach, rm: stdDetach} :
     {add: oldIEAttach, rm: oldIEDetach}
   )
-
+  
   return Events.add(el, eventName, listener, useCapture)
 }
 
@@ -1716,7 +1716,7 @@ function removeEventListener(el, eventName, listener, useCapture) {
     {add: stdAttach, rm: stdDetach} :
     {add: oldIEAttach, rm: oldIEDetach}
   )
-
+  
   return Events.rm(el, eventName, listener, useCapture)
 }
 
@@ -1920,7 +1920,7 @@ function forEach(list, iterator, context) {
     if (arguments.length < 3) {
         context = this
     }
-
+    
     if (toString.call(list) === '[object Array]')
         forEachArray(list, iterator, context)
     else if (typeof list === 'string')
@@ -2137,7 +2137,7 @@ module.exports = createCSV({escapeNewlines: true}, createCSV)
  * Copyright (c) 2014 James M. Greene
  * Licensed MIT
  * http://jsfiddle.net/JamesMGreene/9DFc9/
- * v0.1.5
+ * v0.1.6
  */
 (function() {
 
@@ -2411,8 +2411,8 @@ function createXHR(options, callback) {
     if ("responseType" in options) {
         xhr.responseType = options.responseType
     }
-
-    if ("beforeSend" in options &&
+    
+    if ("beforeSend" in options && 
         typeof options.beforeSend === "function"
     ) {
         options.beforeSend(xhr)
