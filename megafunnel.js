@@ -22,6 +22,17 @@ var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
 
 var monitor = require('./monitor').perSecond()
 
+function toDate (d) {
+  if(d == null) return null
+  var _d = new Date(d)
+  if(_d == 'Invalid Date') {
+    _d = new Date(+d)
+    if(_d == 'Invalid Date')
+      throw new Error('Invalid Date')
+  }
+  return _d
+}
+
 module.exports = function (config) {
 
   var GB = 1024 * 1024 * 1024
@@ -31,8 +42,8 @@ module.exports = function (config) {
   function createQueryStream (opts) {
     return logQuery({
       dir: config.logDir,
-      gt: opts.gt,
-      lt: opts.lt
+      gt: toDate(opts.gt),
+      lt: toDate(opts.lt)
     })
   }
 
