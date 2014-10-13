@@ -1,7 +1,7 @@
 {
   "name": "megafunnel",
   "description": "big data analytics",
-  "version": "0.0.14",
+  "version": "1.0.0",
   "homepage": "https://github.com/micnews/megafunnel",
   "repository": {
     "type": "git",
