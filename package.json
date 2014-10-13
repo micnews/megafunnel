@@ -18,7 +18,7 @@
     "stream-to-pull-stream": "~1.4.1",
     "funnel-stream": "~0.0.0",
     "rc": "~0.5.0",
-    "condor": "~1.1.0",
+    "condor": "~2.0.0",
     "pull-sql": "~1.0.0",
     "hyperquest": "~0.3.0",
     "minimist": "~1.1.0",
