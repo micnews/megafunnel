@@ -36,7 +36,7 @@
   },
   "scripts": {
     "test": "set -e; for t in test/*.js; do node $t; done",
-    "build": "browserify client.js > tracker.js"
+    "build": "which browserify || browserify client.js > tracker.js"
   },
   "author": "Dominic Tarr <dominictarr@micnews.com> (https://mic.com)",
   "license": "MIT"
