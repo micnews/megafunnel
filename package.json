@@ -23,7 +23,8 @@
     "hyperquest": "~0.3.0",
     "minimist": "~1.1.0",
     "pull-paramap": "~1.1.1",
-    "document.currentscript": "JamesMGreene/document.currentScript"
+    "document.currentscript": "JamesMGreene/document.currentScript",
+    "log-archive-s3": "~0.1.1"
   },
   "devDependencies": {
     "xhr": "~1.15.0",
