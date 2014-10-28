@@ -9,5 +9,7 @@ module.exports = require('rc')('megafunnel', {
   funnelHost: 'localhost',
   funnelPort: 4001,
   maxSize: 1024*1024*1024,
-  logDir: path.join(process.env.HOME, '.megafunnel')
+  logDir: path.join(process.env.HOME, '.megafunnel'),
+  "bucket": "megafunnel-archive",
+  "maxUnarchived": 100*1024*1024*1024
 })
