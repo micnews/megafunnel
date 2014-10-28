@@ -3,20 +3,21 @@
 
 // take the aggregated streams and write them out to disk
 
-var http      = require('http')
-var CSV       = require('csv-line')
-var logStream = require('log-rotation-stream')
-var logQuery  = require('log-range-query')
-var funnel    = require('funnel-stream')
-var fs        = require('fs')
-var path      = require('path')
-var url       = require('url')
-var qs        = require('querystring')
-var net       = require('net')
+var http       = require('http')
+var CSV        = require('csv-line')
+var logStream  = require('log-rotation-stream')
+var logQuery   = require('log-range-query')
+var logArchive = require('log-archive-s3')
+var funnel     = require('funnel-stream')
+var fs         = require('fs')
+var path       = require('path')
+var url        = require('url')
+var qs         = require('querystring')
+var net        = require('net')
 
-var pull      = require('pull-stream')
-var toPull    = require('stream-to-pull-stream')
-var rebuffer  = require('pull-rebuffer')
+var pull       = require('pull-stream')
+var toPull     = require('stream-to-pull-stream')
+var rebuffer   = require('pull-rebuffer')
 
 var script = fs.readFileSync(path.join(__dirname, 'tracker.js'))
 
@@ -91,5 +92,8 @@ module.exports = function (config) {
 }
 
 if(!module.parent) {
-  module.exports(require('./config'))
+  var config = require('./config')
+  module.exports(config);
+  //don't run megafunnel unless we have a s3 key.
+  if(config.accessKeyId) logArchive(config)
 }
